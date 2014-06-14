@@ -30,7 +30,7 @@ for (var i = 0; i < items.length; i++) {
     var dist = this.distance(element);    
     var myScore = element.bountyGold / (dist * dist);
     vector = Vector.multiply(vector, myScore);
-    myScore = myScore + vectorSum.dot(vector);
+    myScore = vectorSum.dot(vector);
     
     // If our opponent is closer, decrease the score
     if (this.distance(this.getNearestEnemy()) < dist) {
