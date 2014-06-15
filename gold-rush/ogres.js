@@ -1,65 +1,75 @@
 // This code runs once per frame. Choose where to move to grab gold!
 // First player to 150 gold wins.
 
-var bestItem;
-var bestScore;
-var bestGem;
-var bestGemScore;
+var score = [];
+var itemVector = [];
 
 var items = this.getItems();
-
-// Determine the direction of the items as a whole.
-var vectorSum = new Vector(0, 0);
 for (var i = 0; i < items.length; i++) {
-    var element = items[i];
-    var vector = new Vector(element.pos.x - this.pos.x, 
-        element.pos.y - this.pos.y);
-    vector = Vector.normalize(vector);
-    var dist = this.distance(element);    
-    var myScore = element.bountyGold / (dist * dist);
-    vector = Vector.multiply(vector, myScore);
-    vectorSum = Vector.add(vectorSum, vector);
+    var item = items[i];
+
+    var distSq =  Math.pow(item.pos.x - this.pos.x, 2)
+                + Math.pow(item.pos.y - this.pos.y, 2);
+    score[i] = Math.pow(item.bountyGold, 1.5) / distSq;
+    
+    // If they're closer, decrease the score.
+    if (Math.pow(item.distance(this.getNearestEnemy()), 2) <
+        distSq) {
+        score[i] = score[i] / 10;
+    }
+    
+    var myVector = new Vector(item.pos.x - this.pos.x, 
+        item.pos.y - this.pos.y);
+    myVector = Vector.normalize(myVector);
+    myVector = Vector.multiply(myVector, score[i]);
+    itemVector[i] = myVector;
 }
 
-vectorSum = Vector.normalize(vectorSum);
-
+var sumVectors = new Vector(0, 0);
 for (var i = 0; i < items.length; i++) {
-    var element = items[i];
-    var vector = new Vector(element.pos.x - this.pos.x, 
-        element.pos.y - this.pos.y);
-    var dist = this.distance(element);    
-    var myScore = element.bountyGold / (dist * dist);
-    vector = Vector.multiply(vector, myScore);
-    myScore = myScore + vectorSum.dot(vector);
-    
-    // If our opponent is closer, decrease the score
-    if (this.distance(this.getNearestEnemy()) < dist) {
-        myScore = myScore / (dist * dist);
-    }
+    sumVectors = Vector.add(sumVectors, itemVector[i]);
+}
+sumVectors = Vector.normalize(sumVectors);
+
+var bestItem = null;
+var bestScore = -100;
+ 
+for (var i = 0; i < items.length; i++) {
+    var myScore = itemVector[i].dot(sumVectors) * 0.30 +
+                   score[i] * 0.70;
     if (!bestItem || myScore > bestScore) {
-        bestItem = element;
+        bestItem = items[i];
         bestScore = myScore;
     }
-    if (element.bountyGold == 5 && 
-        (!bestGem || myScore > bestGemScore)) {
-        bestGem = element;
-        bestGemScore = myScore;
+}
+
+    
+
+//for (var i = 0; i < items.length; i++) {
+//    var item = items[i];
+//    var score = item.bountyGold /this.distance(item);
+//    if (this.distance(item) < item.distance(this.getNearestEnemy())) {
+//        score /= 2
+//    }
+//    if (bestItem === null || score > bestScore) {
+//        bestItem = item;
+//        bestScore = score;
+//    }
+//}
+
+if (bestItem) {
+    if (bestItem.distance(this.getNearestEnemy()) < 
+             this.distance(bestItem) &&
+             this.getItems().length > 20 &&
+             this.distance(this.getNearestEnemy()) < 20 &&
+             this.getCooldown("terrify") <= 0) {
+        this.terrify();
+    } else {
+        this.move(bestItem.pos);
     }
-}
-
-
-
-if (this.getCooldown("jump") <= 0 && bestGem &&
-    bestItem.bountyGold < 3 && this.distance(bestItem) > 5) {
-    this.say("Jump!");
-    this.jumpTo(bestGem.pos);
-} else if (bestItem) {
-    //this.say("Getting " + bestItem.id);
-    this.move(bestItem.pos);
 } else {
-    this.say("Help!  I'm lost");
+    this.moveXY(18, 36);
 }
 
-
-// You can surely pick a better coin using the methods below.
 // Click on a coin to see its API.
+
